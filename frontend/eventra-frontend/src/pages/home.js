@@ -1,6 +1,5 @@
-// Eventra-New/frontend/eventra-frontend/src/pages/index.js (Change this file)
-
-import React, { useState, useEffect } from 'react'; // Import useEffect
+import { useRouter } from "next/router";
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import SearchBar from '../components/Common/SearchBar';
 import FilterButton from '../components/Events/FilterButton';
@@ -11,29 +10,25 @@ import { Film, Wrench, Tv, Palette, BookOpen, Briefcase, Trophy } from 'lucide-r
 const API_BASE_URL = "http://localhost:8000/api";
 
 const HomePage = () => {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All Events');
-  const [events, setEvents] = useState([]); // Use state for events
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Map Django backend event_type to frontend labels/filters
+  // Map Django backend event_type to frontend display labels
   const DJANGO_EVENT_TYPES = {
-    'movie': 'Movies',
+    'movie': 'Screenings',
     'workshop': 'Workshops',
     'seminar': 'Seminars',
-    'conference': 'Screenings', // Mapping 'conference' to 'Screenings'
-    'other': 'Culturals', // Mapping 'other' to 'Culturals' (assuming)
-    // You'll need to decide on mappings for 'Academics' and 'Competitions'
+    'other': 'Culturals',
   };
 
   const filters = [
     { icon: null, label: 'All Events' },
-    { icon: <Film size={18} />, label: 'Movies' },
-    { icon: <Wrench size={18} />, label: 'Workshops' },
     { icon: <Tv size={18} />, label: 'Screenings' },
+    { icon: <Wrench size={18} />, label: 'Workshops' },
     { icon: <Palette size={18} />, label: 'Culturals' },
-    { icon: <BookOpen size={18} />, label: 'Academics' },
     { icon: <Briefcase size={18} />, label: 'Seminars' },
-    { icon: <Trophy size={18} />, label: 'Competitions' }
   ];
 
   useEffect(() => {
@@ -44,35 +39,68 @@ const HomePage = () => {
           throw new Error('Failed to fetch events');
         }
         const data = await response.json();
-        // Map Django data fields to frontend expected fields (title -> title, event_type -> category)
         const formattedEvents = data.map(event => ({
             ...event,
-            category: DJANGO_EVENT_TYPES[event.event_type] || event.event_type, // Use mapped value or raw type
-            location: event.venue, // Map venue to location
-            duration: 'N/A', // Duration is missing in Django model, using placeholder
+            category: DJANGO_EVENT_TYPES[event.event_type] || event.event_type,
+            location: event.venue,
+            duration: 'N/A',
             description: event.description,
-            // Rating is missing, so it will be undefined in the card
         }));
         setEvents(formattedEvents);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching events:", error);
         setLoading(false);
-        // Fallback to mock data or display error
         setEvents([]); 
       }
     };
     fetchEvents();
   }, []);
 
-  const filteredEvents = events.filter(event => 
-    activeFilter === 'All Events' || event.category === activeFilter
-  );
+  // Filter events based on activeFilter
+  const filteredEvents = events.filter(event => {
+    if (activeFilter === 'All Events') return true;
+    return event.category === activeFilter;
+  });
+
+  // Handle URL filter parameter
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const urlFilter = router.query.filter;
+
+    if (urlFilter) {
+        // Convert backend type (e.g., "movie") to frontend label (e.g., "Screenings")
+        const mapped = DJANGO_EVENT_TYPES[urlFilter];
+        if (mapped) {
+            setActiveFilter(mapped);
+        } else {
+            // If no mapping exists, show all events
+            setActiveFilter('All Events');
+        }
+    }
+  }, [router.isReady, router.query.filter]);
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ... (Search Bar and Filter Buttons remain the same) */}
+        {/* Search Bar */}
+        <div className="mb-8">
+          <SearchBar />
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {filters.map((filter) => (
+            <FilterButton
+              key={filter.label}
+              icon={filter.icon}
+              label={filter.label}
+              isActive={activeFilter === filter.label}
+              onClick={() => setActiveFilter(filter.label)}
+            />
+          ))}
+        </div>
         
         {/* Event Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -82,7 +110,6 @@ const HomePage = () => {
             <p className="text-gray-500">No events found in this category.</p>
           ) : (
             filteredEvents.map((event) => (
-              // Pass the full event object which now includes the Django ID
               <EventCard key={event.id} event={event} /> 
             ))
           )}
