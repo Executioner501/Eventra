@@ -16,24 +16,24 @@ const Navbar = () => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex space-x-8">
-            <Link href="/events">
+            <Link href="/home">
               <span className="text-gray-700 hover:text-blue-600 font-medium cursor-pointer">
                 Events
               </span>
             </Link>
-            <Link href="/workshops">
+            <Link href="/home?filter=workshop">
               <span className="text-gray-700 hover:text-blue-600 font-medium cursor-pointer">
                 Workshops
               </span>
             </Link>
-            <Link href="/screenings">
+            <Link href="/home?filter=movie">
               <span className="text-gray-700 hover:text-blue-600 font-medium cursor-pointer">
                 Screenings
               </span>
             </Link>
-            <Link href="/admin/login">
+            <Link href="/home?filter=other">
               <span className="text-gray-700 hover:text-blue-600 font-medium cursor-pointer">
-                Admin
+                Culturals
               </span>
             </Link>
           </div>
@@ -44,9 +44,9 @@ const Navbar = () => {
               Verify Tickets
             </button>
             <Link href="/admin/login">
-            <button className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition">
-              Admin Login
-            </button>
+              <button className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition">
+                Admin Login
+              </button>
             </Link>
           </div>
         </div>
