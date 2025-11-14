@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link"; 
-import { Eye, Edit, Trash2, Plus } from "lucide-react";
+import { Eye, Edit, Trash2, Plus, X, Calendar, MapPin, Users, DollarSign, Clock, FileText, Image } from "lucide-react";
 import AdminSidebar from "./layout/AdminSidebar";
 import AdminTopbar from "./layout/AdminTopbar";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
-// Helper function to get the authentication token and header
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   if (token) {
@@ -17,7 +16,6 @@ const getAuthHeaders = () => {
   }
   return { "Content-Type": "application/json" };
 };
-
 
 export default function EventManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,7 +44,6 @@ export default function EventManagement() {
 
   const fetchEvents = async () => {
     setLoading(true);
-    // GET request is public, no token required
     try {
       const response = await fetch(`${API_BASE_URL}/events/`);
       if (!response.ok) {
@@ -66,7 +63,6 @@ export default function EventManagement() {
       return;
     }
     
-    // 🚨 Using AUTH HEADERS for protected DELETE request
     const headers = getAuthHeaders();
 
     try {
@@ -89,8 +85,6 @@ export default function EventManagement() {
     }
   };
 
-
-  // Handles controlled inputs 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     let newValue = value;
@@ -107,60 +101,55 @@ export default function EventManagement() {
   };
 
   const handleCreateEvent = async () => {
-  const formData = new FormData();
+    const formData = new FormData();
 
-  Object.entries(eventForm).forEach(([key, value]) => {
-    if (value !== null && value !== undefined) {
-      formData.append(key, value);
-    }
-  });
-
-  // Auto-set available seats
-  formData.append("available_seats", eventForm.total_seats);
-
-  const token = localStorage.getItem("authToken");
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/events/`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        // ❌ DO NOT SET Content-Type — browser sets multipart boundary automatically
-      },
-      body: formData,
+    Object.entries(eventForm).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        formData.append(key, value);
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.log("ERROR:", errorData);
-      alert("Failed to create event");
-      return;
+    formData.append("available_seats", eventForm.total_seats);
+
+    const token = localStorage.getItem("authToken");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log("ERROR:", errorData);
+        alert("Failed to create event");
+        return;
+      }
+
+      alert("Event created successfully!");
+      setIsModalOpen(false);
+      fetchEvents();
+
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Server error while uploading poster");
     }
+  };
 
-    alert("Event created successfully!");
-    setIsModalOpen(false);
-    fetchEvents();
-
-  } catch (error) {
-    console.error("Upload error:", error);
-    alert("Server error while uploading poster");
-  }
-};
-
-  //add the handlechange int here
   const handleChangeInt = (e) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  // Allow empty input or digits only
-  if (/^\d*$/.test(value)) {
-    setEventForm({
-      ...eventForm,
-      [name]: value === "" ? "" : parseInt(value),
-    });
-  }
-};
+    if (/^\d*$/.test(value)) {
+      setEventForm({
+        ...eventForm,
+        [name]: value === "" ? "" : parseInt(value),
+      });
+    }
+  };
 
-  // Helper to map Django type to CSS class (rest of function remains the same)
   const getEventClass = (type) => {
     switch (type) {
       case 'movie': return 'bg-purple-100 text-purple-600';
@@ -200,7 +189,6 @@ export default function EventManagement() {
             </button>
           </div>
 
-          {/* Search & Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <input
               type="text"
@@ -217,7 +205,6 @@ export default function EventManagement() {
             <button className="border rounded-md px-3 py-2 text-sm">Export</button>
           </div>
 
-          {/* Event Table */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-100 text-gray-600">
@@ -249,13 +236,10 @@ export default function EventManagement() {
                       </span>
                     </td>
                     <td className="p-3 flex gap-2 text-gray-600">
-                      {/* View event detail link */}
                       <Link href={`/events/${ev.id}`}>
                         <Eye size={16} className="cursor-pointer hover:text-blue-600" />
                       </Link>
                       <Edit size={16} className="cursor-pointer hover:text-yellow-600" />
-                      
-                      {/* 🚨 DELETE BUTTON WITH HANDLER */}
                       <Trash2 
                         size={16} 
                         className="cursor-pointer hover:text-red-600" 
@@ -270,108 +254,233 @@ export default function EventManagement() {
         </main>
       </div>
 
-      {/* Create Event Modal (remains the same) */}
+      {/* Enhanced Create Event Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[600px] max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Create New Event</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500">
-                ✕
-              </button>
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm flex justify-center items-center z-50 p-4"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold">Create New Event</h2>
+                  <p className="text-blue-100 text-sm mt-1">Fill in the details to add a new event</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
-              Add a new event to the system. Fill in all required details below.
-            </p>
 
             {/* Tabs */}
-            <div className="flex border-b mb-4">
-              {["basic", "logistics"].map((tabName) => ( 
+            <div className="flex border-b bg-gray-50">
+              {[
+                { name: "basic", label: "Basic Info", icon: <FileText size={16} /> },
+                { name: "logistics", label: "Details", icon: <Calendar size={16} /> }
+              ].map(({ name, label, icon }) => ( 
                 <button
-                  key={tabName}
-                  onClick={() => setTab(tabName)}
-                  className={`flex-1 py-2 text-sm font-medium border-b-2 ${
-                    tab === tabName ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"
+                  key={name}
+                  onClick={() => setTab(name)}
+                  className={`flex-1 py-3 px-4 text-sm font-medium flex items-center justify-center gap-2 transition border-b-2 ${
+                    tab === name 
+                      ? "border-blue-600 text-blue-600 bg-white" 
+                      : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  {tabName.charAt(0).toUpperCase() + tabName.slice(1)}
+                  {icon}
+                  {label}
                 </button>
               ))}
             </div>
 
-            {/* Tab Content */}
-            <div className="space-y-3">
-              {tab === "basic" && (
-                <>
-                  <input name="title" onChange={handleChange} value={eventForm.title} placeholder="Event Title" className="w-full border p-2 rounded-md text-sm" />
-                  
-                  <select name="event_type" onChange={handleChange} value={eventForm.event_type} className="w-full border p-2 rounded-md text-sm">
-                    <option value="other">Select Event Type</option>
-                    <option value="movie">Movie Screening</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="seminar">Seminar</option>
-                    <option value="events">Conference</option>
-                    <option value="other">Other</option>
-                  </select>
-                  
-                  <input name="organizer" onChange={handleChange} value={eventForm.organizer} placeholder="Organizer Name (Required)" className="w-full border p-2 rounded-md text-sm" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setEventForm({ ...eventForm, poster: e.target.files[0] })}
-                    className="w-full border p-2 rounded-md text-sm"
-                  />
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-220px)]">
+              <div className="space-y-4">
+                {tab === "basic" && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Title *</label>
+                      <input 
+                        name="title" 
+                        onChange={handleChange} 
+                        value={eventForm.title} 
+                        placeholder="Enter event title" 
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Type *</label>
+                      <select 
+                        name="event_type" 
+                        onChange={handleChange} 
+                        value={eventForm.event_type} 
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      >
+                        <option value="other">Select Event Type</option>
+                        <option value="movie">Movie Screening</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="seminar">Seminar</option>
+                        <option value="events">Conference</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Organizer Name *</label>
+                      <input 
+                        name="organizer" 
+                        onChange={handleChange} 
+                        value={eventForm.organizer} 
+                        placeholder="Enter organizer name" 
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                      />
+                    </div>
 
-                  <input name="location" onChange={handleChange} value={eventForm.location} placeholder="Location (e.g., Block A, City Name)" className="w-full border p-2 rounded-md text-sm" />
-                  <textarea name="description" onChange={handleChange} value={eventForm.description} placeholder="Description" className="w-full border p-2 rounded-md text-sm" />
-                </>
-                
-              )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Poster</label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition">
+                        <div className="flex items-center gap-3">
+                          <Image className="text-gray-400" size={24} />
+                          <div className="flex-1">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setEventForm({ ...eventForm, poster: e.target.files[0] })}
+                              className="text-sm text-gray-600"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-              {tab === "logistics" && (
-                <>
-                  <input name="venue" onChange={handleChange} value={eventForm.venue} placeholder="Venue (e.g., Main Auditorium)" className="w-full border p-2 rounded-md text-sm" />
-                  
-                  <div className="flex gap-3">
-                      <label className="flex-1">
-                          Date:
-                          <input name="event_date" type="date" min={new Date().toISOString().split("T")[0]} value={eventForm.event_date} onChange={handleChange} className="w-full border p-2 rounded-md text-sm mt-1" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin size={16} className="inline mr-1" />
+                        Location
                       </label>
-                      <label className="flex-1">
-                          Time:
-                          <input name="event_time" type="time" min={new Date().toISOString().split("T")[0]} value={eventForm.event_time.slice(0, 5)} onChange={handleChange} className="w-full border p-2 rounded-md text-sm mt-1" />
+                      <input 
+                        name="location" 
+                        onChange={handleChange} 
+                        value={eventForm.location} 
+                        placeholder="e.g., Block A, City Name" 
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                      <textarea 
+                        name="description" 
+                        onChange={handleChange} 
+                        value={eventForm.description} 
+                        placeholder="Describe your event..." 
+                        rows="4"
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none" 
+                      />
+                    </div>
+                  </>
+                )}
+
+                {tab === "logistics" && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin size={16} className="inline mr-1" />
+                        Venue *
                       </label>
-                  </div>
-                  
-                  <input
-  name="ticket_price"
-  type="text"
-  onChange={handleChangeInt}
-  value={eventForm.ticket_price}
-  placeholder="Registration Fee (₹) - e.g., 50"
-  className="w-full border p-2 rounded-md text-sm"
-/>
+                      <input 
+                        name="venue" 
+                        onChange={handleChange} 
+                        value={eventForm.venue} 
+                        placeholder="e.g., Main Auditorium" 
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <Calendar size={16} className="inline mr-1" />
+                          Date *
+                        </label>
+                        <input 
+                          name="event_date" 
+                          type="date" 
+                          min={new Date().toISOString().split("T")[0]} 
+                          value={eventForm.event_date} 
+                          onChange={handleChange} 
+                          className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <Clock size={16} className="inline mr-1" />
+                          Time *
+                        </label>
+                        <input 
+                          name="event_time" 
+                          type="time" 
+                          value={eventForm.event_time.slice(0, 5)} 
+                          onChange={handleChange} 
+                          className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <DollarSign size={16} className="inline mr-1" />
+                        Registration Fee (₹) *
+                      </label>
+                      <input
+                        name="ticket_price"
+                        type="text"
+                        onChange={handleChangeInt}
+                        value={eventForm.ticket_price}
+                        placeholder="e.g., 50"
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      />
+                    </div>
 
-<input
-  name="total_seats"
-  type="text"
-  onChange={handleChangeInt}
-  value={eventForm.total_seats}
-  placeholder="Total Capacity (Required)"
-  className="w-full border p-2 rounded-md text-sm"
-/>
-
-                </>
-              )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Users size={16} className="inline mr-1" />
+                        Total Capacity *
+                      </label>
+                      <input
+                        name="total_seats"
+                        type="text"
+                        onChange={handleChangeInt}
+                        value={eventForm.total_seats}
+                        placeholder="e.g., 100"
+                        className="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setIsModalOpen(false)} className="border px-4 py-2 rounded-md text-sm">
+            {/* Footer */}
+            <div className="border-t bg-gray-50 px-6 py-4 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+              >
                 Cancel
               </button>
               <button
                 onClick={handleCreateEvent}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:opacity-90 transition shadow-md"
               >
                 Create Event
               </button>
