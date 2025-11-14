@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import Link from "next/link";
 import { CheckCircle, XCircle, Shield, Ticket } from 'lucide-react';
-import Navbar from '../../components/Layout/Navbar';
 
 export default function VerifyTicket() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,7 +11,6 @@ export default function VerifyTicket() {
   const [error, setError] = useState('');
   const [verificationResult, setVerificationResult] = useState(null);
 
-  // Update this to your Django backend URL
   const API_BASE_URL = 'http://localhost:8000';
 
   const handleLogin = async (e) => {
@@ -48,7 +47,6 @@ export default function VerifyTicket() {
     setVerificationResult(null);
 
     try {
-      // Direct call to Django backend
       const response = await fetch(`${API_BASE_URL}/api/volunteer/verify-ticket/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,10 +89,14 @@ export default function VerifyTicket() {
 
   return (
     <>
-      <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
-        <div className="max-w-md mx-auto">
-          
+      {/* Back Button */}
+      <div className="absolute top-6 left-6 text-sm text-gray-600">
+        <Link href="/" className="flex items-center gap-1 hover:text-blue-600">
+          ← Back to Home
+        </Link>
+      </div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-4">
+        <div className="w-[420px] max-w-full">
           {!isLoggedIn ? (
             /* Login Form */
             <div className="bg-white rounded-2xl shadow-lg p-8">
@@ -121,7 +123,9 @@ export default function VerifyTicket() {
                     type="text"
                     required
                     value={loginData.username}
-                    onChange={(e) => setLoginData({...loginData, username: e.target.value})}
+                    onChange={(e) =>
+                      setLoginData({ ...loginData, username: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Enter username"
                   />
@@ -135,7 +139,9 @@ export default function VerifyTicket() {
                     type="password"
                     required
                     value={loginData.password}
-                    onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                    onChange={(e) =>
+                      setLoginData({ ...loginData, password: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Enter password"
                   />
@@ -174,30 +180,52 @@ export default function VerifyTicket() {
               )}
 
               {verificationResult && (
-                <div className={`mb-4 p-4 rounded-lg border ${
-                  verificationResult.success 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-red-50 border-red-200'
-                }`}>
+                <div
+                  className={`mb-4 p-4 rounded-lg border ${
+                    verificationResult.success
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-red-50 border-red-200'
+                  }`}
+                >
                   <div className="flex items-start gap-3">
                     {verificationResult.success ? (
-                      <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
+                      <CheckCircle
+                        className="text-green-600 flex-shrink-0 mt-0.5"
+                        size={20}
+                      />
                     ) : (
-                      <XCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+                      <XCircle
+                        className="text-red-600 flex-shrink-0 mt-0.5"
+                        size={20}
+                      />
                     )}
                     <div className="flex-1">
-                      <p className={`font-medium ${
-                        verificationResult.success ? 'text-green-900' : 'text-red-900'
-                      }`}>
+                      <p
+                        className={`font-medium ${
+                          verificationResult.success
+                            ? 'text-green-900'
+                            : 'text-red-900'
+                        }`}
+                      >
                         {verificationResult.message}
                       </p>
-                      {verificationResult.success && verificationResult.ticket && (
-                        <div className="mt-2 text-sm text-green-800 space-y-1">
-                          <p><strong>Event:</strong> {verificationResult.ticket.event}</p>
-                          <p><strong>Customer:</strong> {verificationResult.ticket.customer}</p>
-                          <p><strong>Ticket #:</strong> {verificationResult.ticket.ticket_number}</p>
-                        </div>
-                      )}
+                      {verificationResult.success &&
+                        verificationResult.ticket && (
+                          <div className="mt-2 text-sm text-green-800 space-y-1">
+                            <p>
+                              <strong>Event:</strong>{' '}
+                              {verificationResult.ticket.event}
+                            </p>
+                            <p>
+                              <strong>Customer:</strong>{' '}
+                              {verificationResult.ticket.customer}
+                            </p>
+                            <p>
+                              <strong>Ticket #:</strong>{' '}
+                              {verificationResult.ticket.ticket_number}
+                            </p>
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -214,13 +242,12 @@ export default function VerifyTicket() {
                     maxLength="6"
                     pattern="[0-9]{6}"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) =>
+                      setOtpCode(e.target.value.replace(/\D/g, ''))
+                    }
                     className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="000000"
                   />
-                  <p className="text-xs text-gray-500 mt-1 text-center">
-                    Enter the 6-digit code from the ticket
-                  </p>
                 </div>
 
                 <button

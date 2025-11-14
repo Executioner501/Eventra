@@ -238,3 +238,56 @@ def volunteer_verify_ticket(request):
         
     except Ticket.DoesNotExist:
         return Response({'error': 'Invalid OTP code'}, status=404)
+    
+# Admin: Get or update admin profile
+@api_view(['GET', 'PUT'])
+@permission_classes([AllowAny])
+def admin_profile(request):
+    """
+    Get or update admin profile
+    """
+    if request.method == 'GET':
+        # Get current admin user - for now using the first superuser
+        try:
+            admin_user = User.objects.filter(is_staff=True).first()
+            if not admin_user:
+                return Response({'error': 'No admin user found'}, status=404)
+            
+            return Response({
+                'name': f"{admin_user.first_name} {admin_user.last_name}".strip() or admin_user.username,
+                'email': admin_user.email,
+                'phone': '',  # You can add a profile model to store phone
+                'role': 'System Administrator' if admin_user.is_superuser else 'Admin'
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+    
+    elif request.method == 'PUT':
+        # Update admin profile
+        try:
+            admin_user = User.objects.filter(is_staff=True).first()
+            if not admin_user:
+                return Response({'error': 'No admin user found'}, status=404)
+            
+            name = request.data.get('name', '')
+            email = request.data.get('email', '')
+            phone = request.data.get('phone', '')
+            
+            # Split name into first and last name
+            name_parts = name.split(' ', 1)
+            admin_user.first_name = name_parts[0]
+            admin_user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            admin_user.email = email
+            admin_user.save()
+            
+            # Note: Phone number storage would require a separate Profile model
+            # For now, we're just acknowledging it
+            
+            return Response({
+                'message': 'Profile updated successfully',
+                'name': name,
+                'email': email,
+                'phone': phone
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

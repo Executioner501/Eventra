@@ -29,7 +29,8 @@ from events.views import (
     create_volunteer, 
     delete_volunteer, 
     volunteer_login, 
-    volunteer_verify_ticket
+    volunteer_verify_ticket,
+    admin_profile,
 )
 
 urlpatterns = [
@@ -44,4 +45,6 @@ urlpatterns = [
     path('api/volunteers/<int:volunteer_id>/delete/', delete_volunteer, name='delete_volunteer'),
     path('api/volunteer/login/', volunteer_login, name='volunteer_login'),
     path('api/volunteer/verify-ticket/', volunteer_verify_ticket, name='volunteer_verify_ticket'),
+    
+    path('api/admin/profile/', admin_profile, name='admin_profile'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

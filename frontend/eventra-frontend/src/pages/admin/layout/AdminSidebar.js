@@ -70,9 +70,11 @@ export default function AdminSidebar() {
             <p className="text-xs text-gray-500">System Admin</p>
           </div>
         </div>
+        <Link href="/admin/login">
         <button className="flex items-center gap-2 mt-3 text-sm text-gray-600 hover:text-red-600">
           <LogOut size={16} /> Logout
         </button>
+        </Link>
       </div>
     </aside>
   );
