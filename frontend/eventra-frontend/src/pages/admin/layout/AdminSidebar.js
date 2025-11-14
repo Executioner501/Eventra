@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { BarChart3, Film, Users, Settings, LogOut } from "lucide-react";
+import { useRouter } from "next/router";
 
 export default function AdminSidebar() {
+  const router = useRouter();
+  
+  const isActive = (path) => router.pathname === path;
+
   return (
     <aside className="w-64 bg-gray-50 h-screen flex flex-col justify-between shadow-sm fixed">
       <div>
@@ -13,17 +18,44 @@ export default function AdminSidebar() {
         </div>
 
         <nav className="mt-4 flex flex-col space-y-2 px-4">
-          <Link href="/admin/dashboard" className="flex items-center gap-2 text-gray-700 p-2 rounded-md hover:bg-indigo-100">
-            <BarChart3 size={18} /> Dashboard
+          <Link href="/admin/dashboard">
+            <div className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
+              isActive('/admin/dashboard') 
+                ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                : 'text-gray-700 hover:bg-indigo-50'
+            }`}>
+              <BarChart3 size={18} /> Dashboard
+            </div>
           </Link>
-          <Link href="/admin/events" className="flex items-center gap-2 text-gray-700 p-2 rounded-md hover:bg-indigo-100">
-            <Film size={18} /> Event Management
+          
+          <Link href="/admin/events">
+            <div className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
+              isActive('/admin/events') 
+                ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                : 'text-gray-700 hover:bg-indigo-50'
+            }`}>
+              <Film size={18} /> Event Management
+            </div>
           </Link>
-          <Link href="/admin/volunteers" className="flex items-center gap-2 text-gray-700 p-2 rounded-md hover:bg-indigo-100">
-            <Users size={18} /> Volunteers
+          
+          <Link href="/admin/volunteers">
+            <div className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
+              isActive('/admin/volunteers') 
+                ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                : 'text-gray-700 hover:bg-indigo-50'
+            }`}>
+              <Users size={18} /> Volunteers
+            </div>
           </Link>
-          <Link href="/admin/settings" className="flex items-center gap-2 text-gray-700 p-2 rounded-md hover:bg-indigo-100">
-            <Settings size={18} /> Settings
+          
+          <Link href="/admin/settings">
+            <div className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
+              isActive('/admin/settings') 
+                ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                : 'text-gray-700 hover:bg-indigo-50'
+            }`}>
+              <Settings size={18} /> Settings
+            </div>
           </Link>
         </nav>
       </div>

@@ -40,9 +40,11 @@ const Navbar = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-3">
+            <Link href="/volunteer/verify">
             <button className="px-4 py-2 text-gray-700 hover:text-blue-600 font-medium border border-gray-300 rounded-md hover:border-blue-600 transition">
               Verify Tickets
             </button>
+            </Link>
             <Link href="/admin/login">
               <button className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition">
                 Admin Login
