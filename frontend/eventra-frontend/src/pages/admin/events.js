@@ -22,6 +22,7 @@ export default function EventManagement() {
   const [tab, setTab] = useState("basic");
   const [events, setEvents] = useState([]); 
   const [loading, setLoading] = useState(true);
+  const [editingEvent, setEditingEvent] = useState(null); // Track which event is being edited
   
   const [eventForm, setEventForm] = useState({
     title: "",
@@ -131,12 +132,91 @@ export default function EventManagement() {
 
       alert("Event created successfully!");
       setIsModalOpen(false);
+      setEditingEvent(null);
       fetchEvents();
 
     } catch (error) {
       console.error("Upload error:", error);
       alert("Server error while uploading poster");
     }
+  };
+
+  const handleUpdateEvent = async () => {
+    const formData = new FormData();
+
+    Object.entries(eventForm).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && key !== 'id') {
+        formData.append(key, value);
+      }
+    });
+
+    const token = localStorage.getItem("authToken");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/${editingEvent}/`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log("ERROR:", errorData);
+        alert("Failed to update event");
+        return;
+      }
+
+      alert("Event updated successfully!");
+      setIsModalOpen(false);
+      setEditingEvent(null);
+      fetchEvents();
+
+    } catch (error) {
+      console.error("Update error:", error);
+      alert("Server error while updating event");
+    }
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event.id);
+    setEventForm({
+      title: event.title,
+      event_type: event.event_type,
+      organizer: event.organizer,
+      venue: event.venue,
+      ticket_price: event.ticket_price,
+      total_seats: event.total_seats,
+      available_seats: event.available_seats,
+      event_date: event.event_date,
+      event_time: event.event_time,
+      location: event.location || "",
+      description: event.description || "",
+      is_active: event.is_active,
+    });
+    setIsModalOpen(true);
+    setTab("basic");
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingEvent(null);
+    // Reset form
+    setEventForm({
+      title: "",
+      event_type: "other",
+      organizer: "",
+      venue: "",
+      ticket_price: 0,
+      total_seats: 0,
+      available_seats: 0,
+      event_date: new Date().toISOString().split('T')[0],
+      event_time: "18:00:00",
+      location: "",
+      description: "",
+      is_active: true,
+    });
   };
 
   const handleChangeInt = (e) => {
@@ -180,6 +260,7 @@ export default function EventManagement() {
 
             <button
               onClick={() => {
+                setEditingEvent(null);
                 setIsModalOpen(true);
                 setTab("basic");
               }}
@@ -237,13 +318,19 @@ export default function EventManagement() {
                     </td>
                     <td className="p-3 flex gap-2 text-gray-600">
                       <Link href={`/events/${ev.id}`}>
-                        <Eye size={16} className="cursor-pointer hover:text-blue-600" />
+                        <Eye size={16} className="cursor-pointer hover:text-blue-600" title="View Event" />
                       </Link>
-                      <Edit size={16} className="cursor-pointer hover:text-yellow-600" />
+                      <Edit 
+                        size={16} 
+                        className="cursor-pointer hover:text-yellow-600" 
+                        onClick={() => handleEditEvent(ev)}
+                        title="Edit Event"
+                      />
                       <Trash2 
                         size={16} 
                         className="cursor-pointer hover:text-red-600" 
-                        onClick={() => handleDeleteEvent(ev.id)} 
+                        onClick={() => handleDeleteEvent(ev.id)}
+                        title="Delete Event"
                       />
                     </td>
                   </tr>
@@ -258,7 +345,7 @@ export default function EventManagement() {
       {isModalOpen && (
         <div 
           className="fixed inset-0 bg-black/20 backdrop-blur-sm flex justify-center items-center z-50 p-4"
-          onClick={() => setIsModalOpen(false)}
+          onClick={handleCloseModal}
         >
           <div 
             className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
@@ -268,11 +355,15 @@ export default function EventManagement() {
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold">Create New Event</h2>
-                  <p className="text-blue-100 text-sm mt-1">Fill in the details to add a new event</p>
+                  <h2 className="text-xl font-semibold">
+                    {editingEvent ? 'Edit Event' : 'Create New Event'}
+                  </h2>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {editingEvent ? 'Update event details' : 'Fill in the details to add a new event'}
+                  </p>
                 </div>
                 <button 
-                  onClick={() => setIsModalOpen(false)} 
+                  onClick={handleCloseModal} 
                   className="text-white hover:bg-white/20 rounded-full p-2 transition"
                 >
                   <X size={20} />
@@ -473,16 +564,16 @@ export default function EventManagement() {
             {/* Footer */}
             <div className="border-t bg-gray-50 px-6 py-4 flex justify-end gap-3">
               <button 
-                onClick={() => setIsModalOpen(false)} 
+                onClick={handleCloseModal} 
                 className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
               <button
-                onClick={handleCreateEvent}
+                onClick={editingEvent ? handleUpdateEvent : handleCreateEvent}
                 className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:opacity-90 transition shadow-md"
               >
-                Create Event
+                {editingEvent ? 'Update Event' : 'Create Event'}
               </button>
             </div>
           </div>
@@ -490,4 +581,4 @@ export default function EventManagement() {
       )}
     </div>
   );
-}
+} 
