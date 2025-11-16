@@ -35,6 +35,11 @@ class TicketSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'otp_code', 'is_verified']
 
 class BookingWithTicketsSerializer(serializers.ModelSerializer):
+    event_title = serializers.CharField(source='event.title', read_only=True)
+    event_date = serializers.DateField(source='event.event_date', read_only=True)
+    event_time = serializers.TimeField(source='event.event_time', read_only=True)
+    venue = serializers.CharField(source='event.venue', read_only=True)
+
     # This shows booking details WITH all ticket OTP codes
     tickets = TicketSerializer(many=True, read_only=True)
     # many=True means "include ALL tickets for this booking"
@@ -43,5 +48,6 @@ class BookingWithTicketsSerializer(serializers.ModelSerializer):
         model = Booking
         fields = ['id', 'event', 'customer_name', 'roll_number', 'section',
                  'email', 'phone', 'number_of_tickets', 'total_amount',
-                 'payment_status', 'tickets', 'created_at']
+                 'payment_status', 'tickets', 'created_at','event_id',
+                 'event_title','event_date','event_time','venue']
         read_only_fields = ['id', 'total_amount', 'payment_status', 'created_at']
