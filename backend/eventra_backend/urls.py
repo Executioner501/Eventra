@@ -32,6 +32,7 @@ from events.views import (
     volunteer_login, 
     volunteer_verify_ticket,
     admin_profile,
+    admin_verify_ticket,
 )
 
 urlpatterns = [
@@ -48,4 +49,6 @@ urlpatterns = [
     path('api/volunteer/verify-ticket/', volunteer_verify_ticket, name='volunteer_verify_ticket'),
     path('api/events/<int:event_id>/bookings/', event_bookings, name='event-bookings'),
     path('api/admin/profile/', admin_profile, name='admin_profile'),
+    path('api/admin/verify-ticket/', admin_verify_ticket, name='admin_verify_ticket'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

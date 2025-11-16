@@ -13,7 +13,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.utils import timezone
 import random 
-import datetime 
+import datetime
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Create your views here.
 class EventListCreateView(generics.ListCreateAPIView):
@@ -131,12 +132,12 @@ def complete_payment(request, booking_id):
 
 # ===== VOLUNTEER MANAGEMENT VIEWS =====
 
-# Admin: Create volunteer
+# Admin: Create volunteer (requires admin authentication)
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])  # Changed to require auth
 def create_volunteer(request):
-    # if not request.user.is_staff:
-    #     return Response({'error': 'Admin access required'}, status=403)
+    if not request.user.is_staff:
+        return Response({'error': 'Admin access required'}, status=403)
     
     name = request.data.get('name')
     username = request.data.get('username')
@@ -156,24 +157,24 @@ def create_volunteer(request):
         'volunteer': {'id': volunteer.id, 'name': name, 'username': username}
     })
 
-# Admin: List volunteers
+# Admin: List volunteers (requires admin authentication)
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])  # Changed to require auth
 def list_volunteers(request):
-    # if not request.user.is_staff:
-    #     return Response({'error': 'Admin access required'}, status=403)
+    if not request.user.is_staff:
+        return Response({'error': 'Admin access required'}, status=403)
     
     volunteers = Volunteer.objects.select_related('user').filter(is_active=True)
     data = [{'id': v.id, 'name': v.name, 'username': v.user.username, 'created_at': v.created_at} 
             for v in volunteers]
     return Response(data)
 
-# Admin: Delete volunteer
+# Admin: Delete volunteer (requires admin authentication)
 @api_view(['DELETE'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])  # Changed to require auth
 def delete_volunteer(request, volunteer_id):
-    # if not request.user.is_staff:
-    #     return Response({'error': 'Admin access required'}, status=403)
+    if not request.user.is_staff:
+        return Response({'error': 'Admin access required'}, status=403)
     
     try:
         volunteer = Volunteer.objects.get(id=volunteer_id)
@@ -182,7 +183,7 @@ def delete_volunteer(request, volunteer_id):
     except Volunteer.DoesNotExist:
         return Response({'error': 'Volunteer not found'}, status=404)
 
-# Volunteer: Login
+# Volunteer: Login - Returns JWT tokens
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def volunteer_login(request):
@@ -192,29 +193,34 @@ def volunteer_login(request):
     user = authenticate(username=username, password=password)
     
     if user and hasattr(user, 'volunteer_profile'):
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        
         return Response({
             'success': True,
             'name': user.volunteer_profile.name,
-            'username': user.username
+            'username': user.username,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
         })
     
     return Response({'error': 'Invalid credentials or not a volunteer'}, status=401)
 
-# Volunteer: Verify ticket
+# Volunteer: Verify ticket (requires volunteer authentication)
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])  # Changed to require auth
 def volunteer_verify_ticket(request):
     """
-    Verify a ticket using volunteer credentials and OTP code
+    Verify a ticket using authenticated volunteer and OTP code
     """
-    username = request.data.get('username')
-    password = request.data.get('password')
+    # Check if user is a volunteer
+    if not hasattr(request.user, 'volunteer_profile'):
+        return Response({'error': 'Only volunteers can verify tickets'}, status=403)
+    
     otp_code = request.data.get('otp_code')
     
-    # Authenticate volunteer
-    user = authenticate(username=username, password=password)
-    if not user or not hasattr(user, 'volunteer_profile'):
-        return Response({'error': 'Invalid volunteer credentials'}, status=401)
+    if not otp_code:
+        return Response({'error': 'OTP code is required'}, status=400)
     
     # Find ticket
     try:
@@ -230,7 +236,7 @@ def volunteer_verify_ticket(request):
         # Verify ticket
         ticket.is_verified = True
         ticket.verified_at = timezone.now()
-        ticket.verified_by = user
+        ticket.verified_by = request.user
         ticket.save()
         
         return Response({
@@ -246,7 +252,7 @@ def volunteer_verify_ticket(request):
         
     except Ticket.DoesNotExist:
         return Response({'error': 'Invalid OTP code'}, status=404)
-    
+        
 # Admin: Get or update admin profile
 @api_view(['GET', 'PUT'])
 @permission_classes([AllowAny])
@@ -306,3 +312,50 @@ def event_bookings(request, event_id):
     bookings = Booking.objects.filter(event__id=event_id)
     serializer = BookingWithTicketsSerializer(bookings, many=True)
     return Response(serializer.data)
+        
+# Add this new view to views.py
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_verify_ticket(request):
+    """
+    Admin can verify tickets without needing volunteer credentials
+    """
+    # Check if user is admin
+    if not request.user.is_staff:
+        return Response({'error': 'Admin access required'}, status=403)
+    
+    otp_code = request.data.get('otp_code')
+    
+    if not otp_code:
+        return Response({'error': 'OTP code is required'}, status=400)
+    
+    # Find ticket
+    try:
+        ticket = Ticket.objects.select_related('booking', 'booking__event').get(otp_code=otp_code)
+        
+        if ticket.is_verified:
+            return Response({
+                'error': 'Ticket already verified',
+                'verified_at': ticket.verified_at,
+                'verified_by': ticket.verified_by.username if ticket.verified_by else None
+            }, status=400)
+        
+        # Verify ticket
+        ticket.is_verified = True
+        ticket.verified_at = timezone.now()
+        ticket.verified_by = request.user
+        ticket.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Ticket verified successfully by Admin',
+            'ticket': {
+                'otp_code': ticket.otp_code,
+                'event': ticket.booking.event.title,
+                'customer': ticket.booking.customer_name,
+                'ticket_number': ticket.ticket_number
+            }
+        })
+        
+    except Ticket.DoesNotExist:
+        return Response({'error': 'Invalid OTP code'}, status=404)
