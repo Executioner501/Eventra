@@ -52,3 +52,4 @@ coverage.xml
 *.cover
 .hypothesis/
 
+node_modules/
