@@ -73,7 +73,7 @@ export default function EventDetails() {
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left: Image */}
-        <div className="flex-1 bg-gray-100 rounded-2xl h-[400px] flex justify-center items-center overflow-hidden">
+        <div className="flex-1 bg-gray-100 rounded-2xl h-[400px] flex justify-center items-center  overflow-hidden">
           {/* choose the best image URL from the event object */}
           {(() => {
             const src = event?.image || event?.image_url || event?.poster || event?.cover || event?.banner || event?.thumbnail;
@@ -82,7 +82,7 @@ export default function EventDetails() {
                 <img
                   src={src}
                   alt={event.title || 'Event image'}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     // fallback in case the image fails to load
                     e.currentTarget.onerror = null;

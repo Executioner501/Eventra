@@ -13,18 +13,43 @@ export default function PaymentPage() {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load the pending booking data from local storage
   useEffect(() => {
-    const data = localStorage.getItem("currentBookingData");
-    if (data) {
-      const parsedData = JSON.parse(data);
-      setBooking(parsedData);
+    const raw = localStorage.getItem("currentBookingData");
+
+    if (!raw) {
+      router.push("/");
+      return;
     }
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      localStorage.removeItem("currentBookingData");
+      router.push("/");
+      return;
+    }
+
+    if (!data.event || !data.number_of_tickets || !data.total_amount) {
+      localStorage.removeItem("currentBookingData");
+      router.push("/");
+      return;
+    }
+
+    if (data.payment_status === "completed") {
+      localStorage.removeItem("currentBookingData");
+      router.push("/");
+      return;
+    }
+
+    setBooking(data);
     setLoading(false);
   }, []);
 
+
   const handlePayment = async (e) => {
     e.preventDefault();
+    const totalAmount = booking.number_of_tickets * booking.ticket_price;
 
     if (!booking) {
         alert("Booking data is missing. Please re-register.");
@@ -34,24 +59,36 @@ export default function PaymentPage() {
 
     try {
         // Step 1: Simulate successful payment and call the API to complete the booking
+        const token = localStorage.getItem("authToken");
+
         const response = await fetch(`${API_BASE_URL}/bookings/${booking.id}/complete-payment/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                payment_id: `PI_${Date.now()}`, // Simulated Payment ID
-            })
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,   // ← REQUIRED
+        },
+        body: JSON.stringify({
+        payment_id: `PI_${Date.now()}`,
+        }),
+      });
 
         const data = await response.json();
 
         if (response.ok) {
-            // Step 2: Store the final, completed booking data and proceed to processing page
-            localStorage.setItem("finalBookingData", JSON.stringify(data));
-            localStorage.removeItem("currentBookingData"); // Clear pending data
-            router.push(`/events/processing?booking_id=${booking.id}`);
-        } else {
-            alert(`Payment completion failed: ${data.error || JSON.stringify(data)}`);
-        }
+    localStorage.setItem("finalBookingData", JSON.stringify(data));
+    localStorage.removeItem("currentBookingData");
+
+    router.push(`/events/processing?booking_id=${booking.id}`);
+} 
+else if (data.message === "Payment already completed.") {
+    // Gracefully redirect
+    localStorage.setItem("finalBookingData", JSON.stringify(data));
+    router.push(`/events/processing?booking_id=${booking.id}`);
+}
+else {
+    alert(`Payment completion failed: ${data.error || JSON.stringify(data)}`);
+}
+
     } catch (error) {
         console.error("Payment error:", error);
         alert("A server error occurred during payment. Please check your bank status.");
@@ -80,7 +117,8 @@ export default function PaymentPage() {
             <div className="w-12 h-12 bg-gray-100 rounded-lg flex justify-center items-center">🎬</div>
             <div>
               <p className="font-medium">Event: {booking.event}</p> {/* Shows Event PK for now, improve by storing event title */}
-              <p className="text-xs text-gray-500">Pending @ {booking.created_at.slice(11, 16)}</p>
+              <p className="text-xs text-gray-500">Booking ID: #{booking.id}</p>
+
             </div>
           </div>
           <div className="text-sm text-gray-700 space-y-1">
