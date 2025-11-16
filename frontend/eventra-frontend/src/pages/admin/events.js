@@ -317,7 +317,7 @@ export default function EventManagement() {
                       </span>
                     </td>
                     <td className="p-3 flex gap-2 text-gray-600">
-                      <Link href={`/events/${ev.id}`}>
+                      <Link href={`/admin/${ev.id}/bookings`}>
                         <Eye size={16} className="cursor-pointer hover:text-blue-600" title="View Event" />
                       </Link>
                       <Edit 
