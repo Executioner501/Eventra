@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import AdminSidebar from './layout/AdminSidebar';
 import { UserPlus, Trash2, Users, CheckCircle } from 'lucide-react';
 
 export default function VolunteersPage() {
+  const router = useRouter();
   const [volunteers, setVolunteers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,22 +17,53 @@ export default function VolunteersPage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
+    // Check if admin is logged in - try both token keys
+    const token = localStorage.getItem('admin_access_token') || localStorage.getItem('authToken');
+    if (!token) {
+      router.push('/admin/login');
+      return;
+    }
     fetchVolunteers();
   }, []);
+
+  const getAuthHeaders = () => {
+    // Try both token keys for compatibility
+    const token = localStorage.getItem('admin_access_token') || localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  const handleUnauthorized = () => {
+    localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_name');
+    localStorage.removeItem('authToken'); // Also remove this
+    router.push('/admin/login');
+  };
 
   const fetchVolunteers = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/volunteers/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: getAuthHeaders()
       });
+      
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      
       if (response.ok) {
         const data = await response.json();
         setVolunteers(data);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to fetch volunteers');
       }
     } catch (err) {
       console.error('Failed to fetch volunteers:', err);
+      setError('Network error. Please try again.');
     }
   };
 
@@ -43,12 +76,14 @@ export default function VolunteersPage() {
     try {
       const response = await fetch('http://localhost:8000/api/volunteers/create/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(formData)
       });
+
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
 
       const data = await response.json();
 
@@ -76,15 +111,21 @@ export default function VolunteersPage() {
     try {
       const response = await fetch(`http://localhost:8000/api/volunteers/${id}/delete/`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: getAuthHeaders()
       });
+
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
 
       if (response.ok) {
         setSuccess('Volunteer deleted successfully');
         fetchVolunteers();
         setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to delete volunteer');
       }
     } catch (err) {
       setError('Failed to delete volunteer');
@@ -205,68 +246,69 @@ export default function VolunteersPage() {
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Volunteer</h2>
               
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="John Doe"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.username}
-                      onChange={(e) => setFormData({...formData, username: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="johndoe"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="••••••••"
-                    />
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="John Doe"
+                  />
                 </div>
 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
-                  >
-                    {loading ? 'Adding...' : 'Add Volunteer'}
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="johndoe"
+                  />
                 </div>
-              </form>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setError('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+                >
+                  {loading ? 'Adding...' : 'Add Volunteer'}
+                </button>
+              </div>
             </div>
           </div>
         )}
