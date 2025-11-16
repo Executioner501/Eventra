@@ -154,7 +154,7 @@ export default function EventManagement() {
 
     try {
       const response = await fetch(`${API_BASE_URL}/events/${editingEvent}/`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Authorization": `Bearer ${token}`,
         },

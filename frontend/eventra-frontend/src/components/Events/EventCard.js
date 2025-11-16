@@ -46,7 +46,7 @@ const EventCard = ({ event }) => {
           <img
             src={event.poster}
             alt={event.title}
-            className="h-full w-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
+            className="h-full w-full object-contain transition-transform duration-500 ease-in-out group-hover:scale-110"
           />
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center">

@@ -2,8 +2,10 @@ from django.shortcuts import render
 from .models import Event, Booking, Ticket, Volunteer
 from django.core.mail import send_mail
 from rest_framework import generics, filters, status
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .serializers import (EventSerializer, EventListSerializer, BookingSerializer, BookingWithTicketsSerializer, TicketSerializer)
@@ -32,13 +34,13 @@ class EventListCreateView(generics.ListCreateAPIView):
 class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    
+    parser_classes = (MultiPartParser, FormParser)
     def get_permissions(self):
         # 🚨 TEMPORARY FIX APPLIED HERE:
         # Allowing GET (View) and DELETE (Delete) without authentication for testing.
         if self.request.method in ['GET', 'DELETE']:
             return [AllowAny()]
-        return [IsAuthenticated()] # PUT (Edit) still requires authentication
+        return [IsAuthenticated()] # PUT (Edit) still requires authentication (make it auth for safety purpose )
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
