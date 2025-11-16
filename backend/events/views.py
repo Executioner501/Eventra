@@ -81,48 +81,47 @@ def create_booking(request, event_id):
 @api_view(['POST'])
 @permission_classes([AllowAny]) 
 def complete_payment(request, booking_id):
-    """
-    Step 2: Mark payment as completed, reduce seats, generate tickets, and send email.
-    The frontend calls this after the payment processing simulation.
-    """
     booking = get_object_or_404(Booking, id=booking_id)
 
+    # If already paid → return full serializer (required by frontend)
     if booking.payment_status == 'completed':
-        return Response({'error': 'Payment already completed.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = BookingWithTicketsSerializer(booking)
+        return Response({
+            "message": "Payment already completed.",
+            **serializer.data
+        }, status=status.HTTP_200_OK)
 
-    # 1. Update Payment Status & ID (using current time/booking ID for simulated ID)
+    # Mark payment as completed
     booking.payment_status = 'completed'
-    booking.payment_id = request.data.get('payment_id', f'PAY-{booking_id}-{random.randint(1000, 9999)}')
-    
-    # 2. Update Available Seats on Event
+    booking.payment_id = request.data.get(
+        'payment_id', 
+        f'PAY-{booking_id}-{random.randint(1000,9999)}'
+    )
+
+    # Deduct seats
     event = booking.event
     event.available_seats -= booking.number_of_tickets
     event.save()
-    
-    # 3. Create Tickets 
+
+    # Create tickets
     if not booking.tickets.exists():
         for i in range(booking.number_of_tickets):
-            Ticket.objects.create(
-                booking=booking,
-                ticket_number=i + 1
-            )
-            
-    # Save the updated booking status
-    booking.save() 
+            Ticket.objects.create(booking=booking, ticket_number=i+1)
 
-    # 4. Send Confirmation Email 
+    booking.save()
+
+    # Send Email
     if booking.email:
         send_mail(
-            subject=f'Ticket Booking Confirmation for {event.title}',
-            message=f'Your payment for {event.title} is complete. Booking ID: {booking.id}. Please check the app for your ticket OTPs.',
-            from_email=None, 
+            subject=f"Ticket Booking Confirmation for {event.title}",
+            message=f"Your payment for {event.title} is complete. Booking ID: {booking.id}.",
+            from_email=None,
             recipient_list=[booking.email],
-            fail_silently=False,
+            fail_silently=True
         )
 
-    # Return booking details with tickets for the success page
-    response_serializer = BookingWithTicketsSerializer(booking)
-    return Response(response_serializer.data, status=status.HTTP_200_OK)
+    serializer = BookingWithTicketsSerializer(booking)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 # ===== VOLUNTEER MANAGEMENT VIEWS =====
 
@@ -346,3 +345,12 @@ def admin_verify_ticket(request):
         
     except Ticket.DoesNotExist:
         return Response({'error': 'Invalid OTP code'}, status=404)
+    
+#for retreiving bookings for a specific event
+# For fetching the bookings of a particular event
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def event_bookings(request, event_id):
+    bookings = Booking.objects.filter(event__id=event_id)
+    serializer = BookingWithTicketsSerializer(bookings, many=True)
+    return Response(serializer.data)
